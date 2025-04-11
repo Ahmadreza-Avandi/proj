@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql" // یا دیتابیس مورد استفاده
+  url      = env("DATABASE_URL")
+}
+
+// تعریف enum برای روزهای هفته
+enum WeekDay {
+  SATURDAY
+  SUNDAY
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+}
+
+// مدل نقش کاربری
+model Role {
+  id          Int    @id @default(autoincrement())
+  name        String @unique
+  permissions Json
+  users       User[] @relation("RoleUsers")
+}
+
+enum RoleEnum {
+  ADMIN
+  USER
+}
+
+// مدل کاربران با افزودن فیلدهای رشته، پایه و کلاس
+model User {
+  id           Int    @id @default(autoincrement())
+  fullName     String
+  nationalCode String @unique
+  phoneNumber  String
+  password     String
+  roleId       Int
+  role         Role   @relation("RoleUsers", fields: [roleId], references: [id])
+
+  // فیلدهای جدید برای ارتباط با رشته، پایه و کلاس
+  majorId      Int?
+  gradeId      Int?
+  classId      Int?
+
+  major        Major? @relation(fields: [majorId], references: [id])
+  grade        Grade? @relation(fields: [gradeId], references: [id])
+  class        Class? @relation(fields: [classId], references: [id])
+
+  // فیلد جدید برای برگشت رابطه‌ی استاد
+  subjects     Subject[] @relation("TeacherSubjects")
+}
+
+// مدل رشته (Major)
+model Major {
+  id      Int      @id @default(autoincrement())
+  name    String   @unique
+  users   User[]
+  classes Class[]
+}
+
+// مدل پایه (Grade)
+model Grade {
+  id      Int      @id @default(autoincrement())
+  name    String   @unique
+  users   User[]
+  classes Class[]
+}
+
+// مدل کلاس (Class) که وابسته به رشته و پایه است
+model Class {
+  id       Int      @id @default(autoincrement())
+  name     String
+  majorId  Int
+  gradeId  Int
+  
+  major    Major    @relation(fields: [majorId], references: [id])
+  grade    Grade    @relation(fields: [gradeId], references: [id])
+  
+  // ارتباط با دانش‌آموزان و درس‌ها
+  students User[]
+  subjects Subject[]
+}
+
+// مدل درس (Subject) با اطلاعات کلاس، دبیر برگزارکننده، روز برگزاری و زمان‌ها
+model Subject {
+  id         Int      @id @default(autoincrement())
+  name       String
+  classId    Int
+  teacherId  Int
+  dayOfWeek  WeekDay  // تغییر به enum
+  startTime  DateTime // زمان شروع
+  endTime    DateTime // زمان پایان
+
+  class      Class    @relation(fields: [classId], references: [id])
+  teacher    User     @relation("TeacherSubjects", fields: [teacherId], references: [id])
+}
+
+// مدل محل (Location)
+model Location {
+  id             Int      @id @default(autoincrement())
+  title          String
+  representative String
+  grade          String
+  major          String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+// مدل آخرین بازدید (LastSeen)
+model LastSeen {
+  id           Int      @id @default(autoincrement())
+  fullName     String
+  nationalCode String
+  checkinTime  DateTime @map("checkin_time")
+}
+
+// مدل حضور و غیاب (Attendance)
+model Attendance {
+  id           Int      @id @default(autoincrement())
+  nationalCode String   @map("national_code")
+  fullName     String   // به صورت الزامی
+  checkinTime  DateTime @map("checkin_time")
+  location     String?
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("attendance")
+}
+
