@@ -9,8 +9,8 @@
 ### روش اجرا
 1. ابتدا کد پروژه را کلون کنید:
 ```bash
-git clone <your-repo-url>
-cd <your-repo-directory>
+git clone https://github.com/Ahmadreza-Avandi/proj.git
+cd proj
 ```
 
 2. با استفاده از docker-compose همه سرویس‌ها را اجرا کنید:
