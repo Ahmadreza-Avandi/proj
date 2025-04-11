@@ -1,0 +1,96 @@
+services:
+  nextjs:
+    build:
+      context: ./next
+    ports:
+      - '80:80'     # HTTP برای ریدایرکت به HTTPS
+      - '443:443'   # HTTPS
+      - '3000:3000' # پورت توسعه در صورت عدم وجود SSL
+    depends_on:
+      - nestjs
+      - mysql
+    networks:
+      - mynetwork
+    environment:
+      NEXT_PUBLIC_API_URL: "http://nestjs:3001"
+    volumes:
+      - /etc/letsencrypt/archive/webapp.aboutthenetworks.online:/certs  # مسیر گواهی‌نامه‌ها
+    restart: always
+    command: ["npx", "ts-node", "server.ts"]
+
+  nestjs:
+    build:
+      context: ./nest
+    ports:
+      - '3001:3001'
+    depends_on:
+      - mysql
+    networks:
+      - mynetwork
+    environment:
+      DATABASE_URL: "mysql://user:userpassword@mysql:3306/mydatabase"
+    restart: always
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: mydatabase
+      MYSQL_USER: user
+      MYSQL_PASSWORD: userpassword
+    ports:
+      - '3306:3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - mynetwork
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    restart: always
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      PMA_HOST: mysql
+      MYSQL_ROOT_PASSWORD: rootpassword
+    ports:
+      - "8081:80"
+    depends_on:
+      - mysql
+    networks:
+      - mynetwork
+
+  redis:
+    image: redis:alpine
+    ports:
+      - '6379:6379'
+    networks:
+      - mynetwork
+    volumes:
+      - redis_data:/data
+    restart: always
+
+  redis-commander:
+    image: rediscommander/redis-commander
+    ports:
+      - '8082:8081'
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    driver: bridge
+
+volumes:
+  mysql_data:
+  redis_data: 
