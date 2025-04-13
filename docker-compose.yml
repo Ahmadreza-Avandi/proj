@@ -8,15 +8,14 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
+      - "443:443"
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
     volumes:
-      - ./next:/usr/src/app
-      - /usr/src/app/node_modules
-      - /usr/src/app/.next
+      - ./certs:/certs
+    restart: unless-stopped
     depends_on:
       - backend
-    restart: unless-stopped
 
   # سرویس Nest.js (بک‌اند)
   backend:
@@ -26,13 +25,8 @@ services:
     ports:
       - "3001:3001"
     environment:
-      - NODE_ENV=development
-    volumes:
-      - ./nest:/usr/src/app
-      - /usr/src/app/node_modules
-      - /usr/src/app/dist
+      - NODE_ENV=production
     restart: unless-stopped
-    # اضافه کردن متغیرهای محیطی از فایل .env
     env_file:
       - ./nest/.env
     depends_on:
