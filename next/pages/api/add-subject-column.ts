@@ -2,7 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 import mysql from 'mysql2/promise';
 
 const dbConfig = {
-  connectionString: process.env.DATABASE_URL || 'mysql://root:@localhost:3306/proj',
+  connectionString: process.env.DATABASE_URL || 'mysql://user:userpassword@mysql:3306/mydatabase',
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

@@ -83,7 +83,7 @@ interface SubMenuItem {
 
 const MainContent = styled('div', {
   shouldForwardProp: (prop: string) => prop !== 'drawerOpen',
-})<MainContentProps>(({ theme, drawerOpen }: { theme: Theme, drawerOpen: boolean }) => ({
+})<MainContentProps>(({ theme, drawerOpen }: { theme: Theme; drawerOpen: boolean }) => ({
   zIndex: '3',
   width: '100%',
   marginRight: -drawerWidth,

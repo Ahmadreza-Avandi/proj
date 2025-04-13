@@ -29,11 +29,6 @@ interface LoginInputs {
   password: string;
 }
 
-interface LoginResponse {
-  access_token: string;
-  // اضافه کردن سایر فیلدهای مورد نیاز
-}
-
 const LoginForm: React.FC = () => {
   const { handleSubmit, control, setError, clearErrors } = useForm<LoginInputs>();
   const router = useRouter();
@@ -47,8 +42,15 @@ const LoginForm: React.FC = () => {
   const onSubmit = async (data: LoginInputs) => {
     setLoading(true);
     try {
-      const response = await axios.post<LoginResponse>('/api/login', data);
-      localStorage.setItem('access_token', response.data.access_token);
+      const response = await axios.post('/api/login', data);
+      
+      interface LoginResponse {
+        access_token: string;
+      }
+      
+      const responseData = response.data as LoginResponse;
+      localStorage.setItem('access_token', responseData.access_token);
+      
       setSnackbarSeverity('success');
       setSnackbarMessage('ورود موفقیت‌آمیز بود');
       setSnackbarOpen(true);

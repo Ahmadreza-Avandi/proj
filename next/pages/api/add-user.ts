@@ -13,7 +13,7 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
     try {
       // ارسال درخواست به API Nest.js برای افزودن کاربر
       const response = await axios.post(
-        'mysql://root:@localhost:3306/proj',
+        'http://backend:3001/users',
         {
           fullName,
           nationalCode,
@@ -25,17 +25,14 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
 
       // اگر عملیات افزودن کاربر موفقیت‌آمیز بود
       return res.status(200).json(response.data);
-    } catch (error) {
-      // مدیریت خطا
-      if (error && typeof error === 'object' && 'response' in error) {
-        const errorMessage = (error.response as any)?.data?.message || 'Failed to add user';
-        console.error('Error adding user:', errorMessage); // ثبت خطا در کنسول
-        return res.status(400).json({ message: errorMessage });
-      } else {
-        // برای خطاهای دیگر
-        console.error('Unexpected error:', error);
-        return res.status(500).json({ message: 'Unexpected error occurred' });
-      }
+    } catch (error: any) {
+      // Handle errors with type checking
+      console.error('Error adding user:', error);
+      
+      const errorMessage = error.response?.data?.message || 'Failed to add user';
+      const statusCode = error.response?.status || 500;
+      
+      return res.status(statusCode).json({ message: errorMessage });
     }
   } else {
     return res.status(405).json({ message: 'Method Not Allowed' });

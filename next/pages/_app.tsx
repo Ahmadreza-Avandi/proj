@@ -1,20 +1,10 @@
 import '@/styles/globals.css';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import Layout from '../components/Layout';
-import UserLayout from '../components/Userlayout';
 import { useEffect, useState } from 'react';
 import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
 import axios from 'axios';
-
-// Interface for API response
-interface AuthResponse {
-  valid: boolean;
-  user: {
-    role: string;
-    [key: string]: any;
-  };
-}
 
 function MyApp({ Component, pageProps }: AppProps) {
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -39,20 +29,27 @@ function MyApp({ Component, pageProps }: AppProps) {
       const token = localStorage.getItem('access_token');
       if (token) {
         try {
-          const response = await axios.get<AuthResponse>('/api/validate-token', {
+          const response = await axios.get('/api/validate-token', {
             headers: { Authorization: `Bearer ${token}` },
           });
 
-          const { valid, user } = response.data;
+          interface AuthResponse {
+            valid: boolean;
+            user?: {
+              role: string;
+            };
+          }
+
+          const { valid, user } = response.data as AuthResponse;
 
           if (valid) {
             setIsAuthenticated(true);
-            setUserRole(user.role);
+            setUserRole(user?.role || null);
 
             if (router.pathname === '/login') {
-              if (user.role === 'ADMIN') {
+              if (user?.role === 'ADMIN') {
                 router.replace('/admin-dashboard');
-              } else if (user.role === 'USER') {
+              } else if (user?.role === 'USER') {
                 router.replace('/user-dashboard');
               }
             }
@@ -135,15 +132,9 @@ function MyApp({ Component, pageProps }: AppProps) {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       {isAuthenticated ? (
-        userRole === 'ADMIN' ? (
-          <Layout darkMode={darkMode} setDarkMode={setDarkMode} userRole={userRole}>
-            <Component {...pageProps} />
-          </Layout>
-        ) : (
-          <UserLayout darkMode={darkMode} setDarkMode={setDarkMode} userRole={userRole}>
-            <Component {...pageProps} />
-          </UserLayout>
-        )
+        <Layout darkMode={darkMode} setDarkMode={setDarkMode} userRole={userRole}>
+          <Component {...pageProps} />
+        </Layout>
       ) : (
         <Component {...pageProps} />
       )}

@@ -22,7 +22,7 @@ interface Student {
   nationalCode: string;
   fullName: string;
   checkin_time: string;
-  time_status: 'در زمان' | 'زودتر' | 'دیرتر';
+  time_status: 'در زمان' | 'زودتر' | 'دیرتر' | 'default';
 }
 
 interface Subject {
@@ -217,7 +217,7 @@ const AttendanceTimeAnalysis = ({ classId, subjectId, jalaliDate }: TimeAnalysis
                       color={getStatusColor(student.time_status) as any}
                       variant="outlined"
                       size="small"
-                      icon={student.time_status !== 'default' ? getStatusIcon(student.time_status) : undefined}
+                      icon={getStatusIcon(student.time_status)}
                     />
                   </TableCell>
                 </TableRow>

@@ -29,17 +29,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.setHeader('Allow', ['GET', 'PUT']);
       return res.status(405).end(`Method ${req.method} Not Allowed`);
     }
-  } catch (error) {
-    console.error(error);
-
-    // بررسی خطا با روش امن تر
-    if (error && typeof error === 'object' && 'response' in error) {
-      return res.status((error.response as any)?.status || 500).json({
-        message: (error.response as any)?.data?.message || 'An error occurred',
-      });
-    } else {
-      // برای خطاهای دیگر
-      return res.status(500).json({ message: 'Unexpected error occurred' });
-    }
+  } catch (error: any) {
+    console.error('Error fetching or updating profile:', error);
+    
+    // Handle errors directly
+    const statusCode = error.response?.status || 500;
+    const message = error.response?.data?.message || 'An error occurred while processing your request';
+    
+    res.status(statusCode).json({ error: message });
   }
 }

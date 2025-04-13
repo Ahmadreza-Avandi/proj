@@ -20,7 +20,6 @@ import {
   Tooltip,
   Fade,
 } from '@mui/material';
-import { Theme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ExpandLess from '@mui/icons-material/ExpandLess';
@@ -35,6 +34,7 @@ import { useRouter } from 'next/router';
 import { ReactNode } from 'react';
 import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import PeopleOutlineIcon from '@mui/icons-material/PeopleOutline';
+import { Theme } from '@mui/material/styles';
 
 const drawerWidth = 240;
 const secAppbarHeight = 64;
@@ -73,7 +73,7 @@ interface SubMenuItem {
 
 const MainContent = styled('div', {
   shouldForwardProp: (prop: string) => prop !== 'drawerOpen',
-})<MainContentProps>(({ theme, drawerOpen }: { theme: Theme, drawerOpen: boolean }) => ({
+})<MainContentProps>(({ theme, drawerOpen }: { theme: Theme; drawerOpen: boolean }) => ({
   zIndex: '3',
   width: '100%',
   marginRight: -drawerWidth,

@@ -1,19 +1,31 @@
 import React from 'react';
-import { Box, Typography, Paper } from '@mui/material';
+import {
+  Typography,
+  Box,
+  styled,
+  CircularProgress,
+} from '@mui/material';
+import { Theme } from '@mui/material/styles';
 
-const AttendancePage = () => {
+// Styled components
+const LoadingOverlay = styled(Box)(({ theme }: { theme: Theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  minHeight: '400px',
+  gap: theme.spacing(2),
+}));
+
+const App: React.FC = () => {
   return (
-    <Box sx={{ p: 3, maxWidth: '100%' }}>
-      <Paper sx={{ p: 4, borderRadius: 2 }}>
-        <Typography variant="h4" gutterBottom textAlign="center">
-          صفحه حضور و غیاب
-        </Typography>
-        <Typography variant="body1" textAlign="center">
-          این صفحه در حال بروزرسانی است.
-        </Typography>
-      </Paper>
-    </Box>
+    <LoadingOverlay>
+      <CircularProgress size={60} />
+      <Typography variant="h4" sx={{ mt: 4, fontWeight: 'bold' }}>
+        درحال بروز رسانی است
+      </Typography>
+    </LoadingOverlay>
   );
 };
 
-export default AttendancePage;
+export default App;

@@ -1,0 +1,248 @@
+# راهنمای جامع دیپلوی پروژه سیستم حضور و غیاب با Docker
+
+## مرحله ۱: پاکسازی محیط قبلی
+```bash
+# متوقف کردن کانتینرها
+docker-compose down
+
+# حذف همه کانتینرها، تصاویر و حجم‌های بلااستفاده
+docker system prune -a --volumes --force
+
+# در صورت نیاز به حذف دستی کانتینر خاص
+docker ps -a
+docker rm [container_id]
+
+# برای حذف فولدر پروژه قبلی
+rm -rf proj
+```
+
+## مرحله ۲: دریافت کد از مخزن گیت‌هاب
+```bash
+git clone https://github.com/Ahmadreza-Avandi/proj.git
+cd proj
+```
+
+## مرحله ۳: تنظیم فایل‌های محیطی
+```bash
+# ایجاد فایل .env برای Nest.js
+cat > nest/.env << EOL
+DATABASE_URL="mysql://user:userpassword@mysql:3306/mydatabase"
+EOL
+
+# ایجاد فایل .env.local برای Next.js
+cat > next/.env.local << EOL
+NEXT_PUBLIC_API_URL=http://localhost:3001
+DATABASE_URL="mysql://user:userpassword@mysql:3306/mydatabase"
+EOL
+```
+
+## مرحله ۴: به‌روزرسانی اتصال دیتابیس در فایل‌های API
+```bash
+# جایگزینی تمام آدرس‌های اتصال به دیتابیس در فایل‌های API Next.js
+find ./next/pages/api -type f -name "*.ts" -exec sed -i 's|mysql:\/\/root:@localhost:3306\/proj|mysql:\/\/user:userpassword@mysql:3306\/mydatabase|g' {} \;
+
+# بررسی فایل add-user.ts و تغییر آدرس درخواست API
+sed -i 's|mysql:\/\/root:@localhost:3306\/proj|http:\/\/backend:3001\/users|g' ./next/pages/api/add-user.ts
+
+# به‌روزرسانی هر آدرس دیتابیس دیگر که ممکن است وجود داشته باشد
+grep -r "localhost:3306" --include="*.ts" ./next/pages/api || echo "همه آدرس‌ها به‌روزرسانی شدند"
+```
+
+## مرحله ۵: ساخت و راه‌اندازی کانتینرها
+```bash
+# ساخت تصاویر داکر بدون استفاده از کش
+docker-compose build --no-cache
+
+# راه‌اندازی کانتینرها در پس‌زمینه
+docker-compose up -d
+```
+
+## مرحله ۶: تنظیم SSL برای HTTPS (در صورت نیاز)
+```bash
+# انتقال و تغییر نام فایل‌های گواهی SSL
+docker exec -it proj_frontend_1 sh -c "mkdir -p /certs && mv /certs/fullchain1.pem /certs/fullchain.pem && mv /certs/privkey1.pem /certs/privkey.pem"
+```
+
+## مرحله ۷: اجرای مایگریشن‌های Prisma
+```bash
+# دسترسی به کانتینر NestJS
+docker exec -it proj_backend_1 sh
+
+# اجرای مایگریشن‌ها
+npx prisma migrate deploy
+
+# خروج از کانتینر
+exit
+```
+
+## مرحله ۸: تنظیم داده‌های اولیه
+```bash
+# دسترسی به کانتینر MySQL
+docker exec -it proj_mysql_1 mysql -u user -puserpassword mydatabase -e "
+INSERT INTO Role (id, name, permissions) 
+VALUES 
+(1, 'Admin', '{\"viewPlaces\":true,\"editPlaces\":true,\"deletePlaces\":true,\"viewPersons\":true,\"editPersons\":true,\"deletePersons\":true,\"viewRoles\":true,\"editRoles\":true,\"deleteRoles\":true}');
+
+INSERT INTO User (fullName, nationalCode, phoneNumber, password, roleId) 
+VALUES 
+('amirali hashemipoor', '3381608681', '09369890707', '\$2b\$12\$F.VzTzQhGZ6uXod2oeNUuewqVFL/XiOD/8v47GtTHRleh5CN0ORrO', 1);
+"
+```
+
+## مرحله ۹: راه‌اندازی بخش تشخیص چهره (بدون Docker)
+```bash
+# نصب وابستگی‌های پایتون 
+pip install opencv-python numpy face-recognition dlib
+
+# اجرای برنامه تشخیص چهره
+cd faceDetectionWithCamera
+python faceDetectionWithCamera.py
+```
+
+## مرحله ۱۰: بررسی وضعیت سرویس‌ها
+```bash
+# مشاهده لاگ‌ها در حالت زنده
+docker-compose logs -f
+
+# بررسی وضعیت کانتینرها
+docker ps
+```
+
+## دسترسی به سرویس‌ها
+- **Frontend (Next.js)**: قابل دسترسی در پورت 3000 - `http://localhost:3000`
+- **Backend (Nest.js)**: قابل دسترسی در پورت 3001 - `http://localhost:3001`
+- **MySQL Database**: قابل دسترسی در پورت 3306
+
+## عیب‌یابی متداول
+1. **خطای اتصال به دیتابیس**:
+   ```bash
+   # بررسی وضعیت سرویس MySQL
+   docker-compose ps mysql
+   
+   # بررسی لاگ‌های MySQL
+   docker-compose logs mysql
+   ```
+
+2. **مشکل میگریشن Prisma**:
+   ```bash
+   # حذف و ایجاد مجدد دیتابیس
+   docker exec -it proj_mysql_1 mysql -u root -prootpassword -e "DROP DATABASE mydatabase; CREATE DATABASE mydatabase;"
+   
+   # اجرای مجدد میگریشن‌ها
+   docker exec -it proj_backend_1 sh -c "npx prisma migrate deploy"
+   ```
+
+3. **مشکل دسترسی به API**:
+   ```bash
+   # بررسی صحت آدرس API در فایل .env.local
+   docker exec -it proj_frontend_1 sh -c "cat /usr/src/app/.env.local"
+   ```
+
+## دستورات مفید دیگر
+```bash
+# راه‌اندازی مجدد همه سرویس‌ها
+docker-compose restart
+
+# راه‌اندازی یک سرویس خاص
+docker-compose start [service_name]
+
+# متوقف کردن یک سرویس خاص
+docker-compose stop [service_name]
+
+# دسترسی به محیط Bash یک کانتینر
+docker exec -it [container_name] bash
+
+# مشاهده اطلاعات دیتابیس
+docker exec -it proj_mysql_1 mysql -u user -puserpassword mydatabase
+
+# بک‌آپ گرفتن از دیتابیس
+docker exec proj_mysql_1 mysqldump -u user -puserpassword mydatabase > backup.sql
+
+# بازیابی بک‌آپ دیتابیس
+cat backup.sql | docker exec -i proj_mysql_1 mysql -u user -puserpassword mydatabase
+```
+
+docker
+
+git clone https://github.com/amirzerok/system-docker-rolebase.git
+
+
+
+cd attendance-newlayout-all
+
+cd system-docker-rolebase
+
+
+
+
+
+create .env file
+
+cd project-name
+
+touch .env
+
+nano .env
+
+
+DATABASE_URL="mysql://user:userpassword@mysql:3306/mydatabase"
+
+
+ تغییر نام فایل‌ها داخل کانتینر:
+
+
+
+docker exec -it attendance-newlayout-all_nextjs_1 sh -c "mv /certs/fullchain1.pem /certs/fullchain.pem && mv /certs/privkey1.pem /certs/privkey.pem"
+
+
+
+
+docker system prune -a
+
+
+docker start system-mysql-1    
+
+docker-compose build --no-cache
+
+docker-compose up --build 
+
+docker-compose up 
+
+docker-compose up -d
+
+
+docker compose down 
+
+
+
+
+prisma 
+
+docker ps
+
+docker exec -it attendance-newlayout-all_nestjs_1 sh
+
+
+npx prisma migrate deploy
+
+
+npx prisma migrate dev --name init
+
+
+
+querry
+
+
+INSERT INTO Role (id, name, permissions) 
+VALUES 
+(1, 'Admin', '{"viewPlaces":true,"editPlaces":true,"deletePlaces":true,"viewPersons":true,"editPersons":true,"deletePersons":true,"viewRoles":true,"editRoles":true,"deleteRoles":true}');
+
+
+
+INSERT INTO User (fullName, nationalCode, phoneNumber, password, roleId) 
+VALUES 
+('amirali hashemipoor', '3381608681', '09369890707', '$2b$12$F.VzTzQhGZ6uXod2oeNUuewqVFL/XiOD/8v47GtTHRleh5CN0ORrO', 1);
+
+
+
+docker exec -it attendance-newlayout-all_nestjs_1 sh
