@@ -26,6 +26,12 @@ interface FormInputs {
   gradeId: number;
 }
 
+// تعریف interface برای پاسخ API
+interface ApiResponse {
+  message?: string;
+  [key: string]: any;
+}
+
 const RegisterForm: React.FC = () => {
   const [step, setStep] = useState(1);
   const [open, setOpen] = useState(false);
@@ -139,56 +145,54 @@ const RegisterForm: React.FC = () => {
   };
 
   // ارسال فرم نهایی ثبت‌نام همراه با تصویر تأیید شده
-    // ارسال فرم نهایی ثبت‌نام همراه با تصویر تأیید شده
-    const onSubmit = async (data: FormInputs) => {
-      if (!identityPhoto) {
-        setMessage("لطفاً ابتدا تصویر شناسایی خود را بگیرید و آپلود کنید.");
-        setSeverity('error');
+  const onSubmit = async (data: FormInputs) => {
+    if (!identityPhoto) {
+      setMessage("لطفاً ابتدا تصویر شناسایی خود را بگیرید و آپلود کنید.");
+      setSeverity('error');
+      setOpen(true);
+      return;
+    }
+
+    // در اینجا نقش به صورت ثابت برابر 1 (مثلاً ادمین) در نظر گرفته شده است
+    const formData = { ...data, roleId: 1, identityPhoto };
+
+    try {
+      setLoading(true);
+      const response = await axios.post<ApiResponse>('/api/register', formData);
+      
+      if (response.status === 200 || response.status === 201) {
+        console.log('Registration successful:', response.data);
+        setMessage('ثبت‌نام با موفقیت انجام شد!');
+        setSeverity('success');
         setOpen(true);
-        return;
-      }
-  
-      // در اینجا نقش به صورت ثابت برابر 1 (مثلاً ادمین) در نظر گرفته شده است
-      const formData = { ...data, roleId: 1, identityPhoto };
-  
-      try {
-        setLoading(true);
-        const response = await axios.post('http://localhost:3001/users/add-user', formData);
         
-        // بررسی دقیق‌تر وضعیت پاسخ
-        if (response.status >= 200 && response.status < 300) {
-          console.log('Registration successful:', response.data);
-          setMessage('ثبت‌نام با موفقیت انجام شد!');
-          setSeverity('success');
-          setOpen(true);
-          
-          // تاخیر کوتاه‌تر برای انتقال به صفحه لاگین
-          setTimeout(() => {
-            try {
-              router.push('/login');
-            } catch (routeError) {
-              console.error('Error navigating to login page:', routeError);
-              // اگر هدایت با روش push مشکل داشت، از روش replace استفاده کنیم
-              window.location.href = '/login';
-            }
-          }, 2000);
-        } else {
-          console.error('Server responded with non-success status:', response.status, response.data);
-          setMessage(response.data?.message || 'عملیات ثبت‌نام با خطا مواجه شد.');
-          setSeverity('error');
-          setOpen(true);
-        }
-      } catch (error: any) {
-        console.error('Registration error:', error);
-        // نمایش پیام خطای دقیق‌تر
-        const errorMessage = error.response?.data?.message || error.message || 'خطا در ارسال داده‌ها';
-        setMessage(errorMessage);
+        // تاخیر کوتاه‌تر برای انتقال به صفحه لاگین
+        setTimeout(() => {
+          try {
+            router.push('/login');
+          } catch (routeError) {
+            console.error('Error navigating to login page:', routeError);
+            // اگر هدایت با روش push مشکل داشت، از روش replace استفاده کنیم
+            window.location.href = '/login';
+          }
+        }, 2000);
+      } else {
+        console.error('Server responded with non-success status:', response.status, response.data);
+        setMessage(response.data?.message || 'عملیات ثبت‌نام با خطا مواجه شد.');
         setSeverity('error');
         setOpen(true);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error: any) {
+      console.error('Registration error:', error);
+      // نمایش پیام خطای دقیق‌تر
+      const errorMessage = error.response?.data?.message || error.message || 'خطا در ارسال داده‌ها';
+      setMessage(errorMessage);
+      setSeverity('error');
+      setOpen(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleNextStep = () => {
     if (step === 1 && !identityPhoto) {
@@ -451,62 +455,62 @@ const RegisterForm: React.FC = () => {
               />
 
               {/* فیلد انتخاب رشته */}
-<Controller
-  name="majorId"
-  control={control}
-  defaultValue={0}
-  render={({ field }) => (
-    <TextField
-      {...field}
-      select
-      fullWidth
-      label="انتخاب رشته"
-      SelectProps={{
-        native: true,
-      }}
-      variant="outlined"
-      sx={{ direction: 'rtl' }}
-      onChange={(e) => field.onChange(parseInt(e.target.value, 10))}
-      value={field.value}
-    >
-      <option value={0}>انتخاب رشته</option>
-      {majors.map((major) => (
-        <option key={major.id} value={major.id}>
-          {major.name}
-        </option>
-      ))}
-    </TextField>
-  )}
-/>
+              <Controller
+                name="majorId"
+                control={control}
+                defaultValue={0}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label="انتخاب رشته"
+                    SelectProps={{
+                      native: true,
+                    }}
+                    variant="outlined"
+                    sx={{ direction: 'rtl' }}
+                    onChange={(e) => field.onChange(parseInt(e.target.value, 10))}
+                    value={field.value}
+                  >
+                    <option value={0}>انتخاب رشته</option>
+                    {majors.map((major) => (
+                      <option key={major.id} value={major.id}>
+                        {major.name}
+                      </option>
+                    ))}
+                  </TextField>
+                )}
+              />
 
-{/* فیلد انتخاب پایه */}
-<Controller
-  name="gradeId"
-  control={control}
-  defaultValue={0}
-  render={({ field }) => (
-    <TextField
-      {...field}
-      select
-      fullWidth
-      label="انتخاب پایه"
-      SelectProps={{
-        native: true,
-      }}
-      variant="outlined"
-      sx={{ direction: 'rtl' }}
-      onChange={(e) => field.onChange(parseInt(e.target.value, 10))}
-      value={field.value}
-    >
-      <option value={0}>انتخاب پایه</option>
-      {grades.map((grade) => (
-        <option key={grade.id} value={grade.id}>
-          {grade.name}
-        </option>
-      ))}
-    </TextField>
-  )}
-/>
+              {/* فیلد انتخاب پایه */}
+              <Controller
+                name="gradeId"
+                control={control}
+                defaultValue={0}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    select
+                    fullWidth
+                    label="انتخاب پایه"
+                    SelectProps={{
+                      native: true,
+                    }}
+                    variant="outlined"
+                    sx={{ direction: 'rtl' }}
+                    onChange={(e) => field.onChange(parseInt(e.target.value, 10))}
+                    value={field.value}
+                  >
+                    <option value={0}>انتخاب پایه</option>
+                    {grades.map((grade) => (
+                      <option key={grade.id} value={grade.id}>
+                        {grade.name}
+                      </option>
+                    ))}
+                  </TextField>
+                )}
+              />
             </Box>
           )}
 

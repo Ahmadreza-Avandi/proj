@@ -52,7 +52,7 @@ const RoleTable: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/users/role');
+        const response = await axios.get<Role[]>('http://localhost:3001/users/role');
         const filteredRoles = response.data.map((role: Role) => {
           if (typeof role.permissions === 'string') {
             role.permissions = JSON.parse(role.permissions);

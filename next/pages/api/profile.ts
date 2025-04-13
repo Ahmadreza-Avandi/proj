@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
 const API_URL = 'http://localhost:3001/users'; // آدرس بک‌اند
 
@@ -32,13 +32,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error(error);
 
-    // بررسی اینکه آیا error از نوع AxiosError است
-    if (axios.isAxiosError(error)) {
-      return res.status(error.response?.status || 500).json({
-        message: error.response?.data?.message || 'An error occurred',
+    // بررسی خطا با روش امن تر
+    if (error && typeof error === 'object' && 'response' in error) {
+      return res.status((error.response as any)?.status || 500).json({
+        message: (error.response as any)?.data?.message || 'An error occurred',
       });
     } else {
-      // برای خطاهای غیر Axios
+      // برای خطاهای دیگر
       return res.status(500).json({ message: 'Unexpected error occurred' });
     }
   }

@@ -24,7 +24,7 @@ const NewPersonTable: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get('/api/new-person');
+        const response = await axios.get<Person[]>('/api/new-person');
         setNewPeople(response.data);
       } catch (error) {
         console.error('Error fetching data:', error);

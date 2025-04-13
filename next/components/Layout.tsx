@@ -20,6 +20,7 @@ import {
   Tooltip,
   Fade,
 } from '@mui/material';
+import { Theme } from '@mui/material/styles';
 import MenuIcon from '@mui/icons-material/Menu';
 import DashboardIcon from '@mui/icons-material/Dashboard';
 import ExpandLess from '@mui/icons-material/ExpandLess';
@@ -48,7 +49,7 @@ import CameraAltIcon from '@mui/icons-material/CameraAlt';
 const drawerWidth = 240;
 const secAppbarHeight = 64;
 
-const ToolbarOffset = styled('div')(({ theme }) => ({
+const ToolbarOffset = styled('div')(({ theme }: { theme: Theme }) => ({
   minHeight: secAppbarHeight,
   backgroundColor: 'transparent',
   position: 'relative',
@@ -81,8 +82,8 @@ interface SubMenuItem {
 }
 
 const MainContent = styled('div', {
-  shouldForwardProp: (prop) => prop !== 'drawerOpen',
-})<MainContentProps>(({ theme, drawerOpen }) => ({
+  shouldForwardProp: (prop: string) => prop !== 'drawerOpen',
+})<MainContentProps>(({ theme, drawerOpen }: { theme: Theme, drawerOpen: boolean }) => ({
   zIndex: '3',
   width: '100%',
   marginRight: -drawerWidth,
@@ -100,7 +101,7 @@ const MainContent = styled('div', {
   }),
 }));
 
-const PageContent = styled('div')(({ theme }) => ({
+const PageContent = styled('div')(({ theme }: { theme: Theme }) => ({
   display: 'flex',
   justifyContent: 'center',
   height: 'fit-content',
@@ -108,7 +109,7 @@ const PageContent = styled('div')(({ theme }) => ({
   backgroundColor: theme.palette.background.default,
 }));
 
-const StyledDrawer = styled(Drawer)(({ theme }) => ({
+const StyledDrawer = styled(Drawer)(({ theme }: { theme: Theme }) => ({
   width: drawerWidth,
   flexShrink: 0,
   '& .MuiDrawer-paper': {

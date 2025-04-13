@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
 export default async (req: NextApiRequest, res: NextApiResponse) => {
   if (req.method === 'POST') {
@@ -26,13 +26,13 @@ export default async (req: NextApiRequest, res: NextApiResponse) => {
       // اگر عملیات افزودن کاربر موفقیت‌آمیز بود
       return res.status(200).json(response.data);
     } catch (error) {
-      // مدیریت خطا با استفاده از Type Assertion برای AxiosError
-      if (axios.isAxiosError(error)) {
-        const errorMessage = error.response?.data?.message || 'Failed to add user';
+      // مدیریت خطا
+      if (error && typeof error === 'object' && 'response' in error) {
+        const errorMessage = (error.response as any)?.data?.message || 'Failed to add user';
         console.error('Error adding user:', errorMessage); // ثبت خطا در کنسول
         return res.status(400).json({ message: errorMessage });
       } else {
-        // برای خطاهای غیر Axios
+        // برای خطاهای دیگر
         console.error('Unexpected error:', error);
         return res.status(500).json({ message: 'Unexpected error occurred' });
       }

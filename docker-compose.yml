@@ -1,105 +1,56 @@
+version: '3'
+
 services:
-  nextjs:
+  # سرویس Next.js (فرانت‌اند)
+  frontend:
     build:
       context: ./next
+      dockerfile: Dockerfile
     ports:
-      - '80:80'     # HTTP برای ریدایرکت به HTTPS
-      - '443:443'   # HTTPS
-      - '3000:3000' # پورت توسعه در صورت عدم وجود SSL
-    depends_on:
-      - nestjs
-      - mysql
-    networks:
-      - mynetwork
+      - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: "http://nestjs:3001"
-      NODE_ENV: "production"
+      - NODE_ENV=development
     volumes:
-      - /etc/letsencrypt/archive/webapp.aboutthenetworks.online:/certs  # مسیر گواهی‌نامه‌ها
-    restart: always
+      - ./next:/usr/src/app
+      - /usr/src/app/node_modules
+      - /usr/src/app/.next
+    depends_on:
+      - backend
+    restart: unless-stopped
 
-  nestjs:
+  # سرویس Nest.js (بک‌اند)
+  backend:
     build:
       context: ./nest
+      dockerfile: Dockerfile
     ports:
-      - '3001:3001'
-    depends_on:
-      mysql:
-        condition: service_healthy
-    networks:
-      - mynetwork
+      - "3001:3001"
     environment:
-      DATABASE_URL: "mysql://user:userpassword@mysql:3306/mydatabase"
-      NODE_ENV: "production"
-    restart: always
+      - NODE_ENV=development
+    volumes:
+      - ./nest:/usr/src/app
+      - /usr/src/app/node_modules
+      - /usr/src/app/dist
+    restart: unless-stopped
+    # اضافه کردن متغیرهای محیطی از فایل .env
+    env_file:
+      - ./nest/.env
+    depends_on:
+      - mysql
 
+  # سرویس دیتابیس MySQL
   mysql:
     image: mysql:8.0
-    command: --default-authentication-plugin=mysql_native_password
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
       MYSQL_DATABASE: mydatabase
       MYSQL_USER: user
       MYSQL_PASSWORD: userpassword
     ports:
-      - '3306:3306'
+      - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    networks:
-      - mynetwork
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "user", "-p$$MYSQL_PASSWORD"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-    restart: always
-
-  phpmyadmin:
-    image: phpmyadmin/phpmyadmin
-    container_name: phpmyadmin
-    environment:
-      PMA_HOST: mysql
-      MYSQL_ROOT_PASSWORD: rootpassword
-    ports:
-      - "8081:80"
-    depends_on:
-      - mysql
-    networks:
-      - mynetwork
-
-  redis:
-    image: redis:alpine
-    ports:
-      - '6379:6379'
-    networks:
-      - mynetwork
-    volumes:
-      - redis_data:/data
-    restart: always
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  redis-commander:
-    image: rediscommander/redis-commander
-    ports:
-      - '8082:8081'
-    environment:
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-    depends_on:
-      - redis
-    networks:
-      - mynetwork
-
-networks:
-  mynetwork:
-    driver: bridge
+    restart: unless-stopped
 
 volumes:
-  mysql_data:
-  redis_data: 
+  mysql_data: 

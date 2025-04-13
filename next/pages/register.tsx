@@ -44,11 +44,16 @@ interface FormInputs {
   role: string;
 }
 
+interface Role {
+  id: number;
+  name: string;
+}
+
 const RegisterPage = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [showPassword, setShowPassword] = useState(false);
-  const [roles, setRoles] = useState<{ id: number; name: string }[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [alert, setAlert] = useState({
     open: false,
     message: '',
@@ -69,7 +74,7 @@ const RegisterPage = () => {
   useEffect(() => {
     const fetchRoles = async () => {
       try {
-        const response = await axios.get('http://localhost:3001/users/role');
+        const response = await axios.get<Role[]>('http://localhost:3001/users/role');
         setRoles(response.data);
       } catch (error) {
         setAlert({
@@ -101,11 +106,11 @@ const RegisterPage = () => {
         });
         reset();
       }
-    } catch (error) {
+    } catch (error: unknown) {
       setAlert({
         open: true,
-        message: axios.isAxiosError(error) 
-          ? error.response?.data?.message || 'خطا در ثبت کاربر'
+        message: error && typeof error === 'object' && 'response' in error
+          ? ((error.response as any)?.data?.message as string) || 'خطا در ثبت کاربر'
           : 'خطا در ثبت کاربر',
         severity: 'error',
       });

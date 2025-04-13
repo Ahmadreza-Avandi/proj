@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
 const API_URL = 'http://localhost:3001/users'; // آدرس API NestJS
 
@@ -28,13 +28,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error("خطا در برقراری ارتباط با سرور:", error);
 
-    // مدیریت خطا با استفاده از axios
-    if (axios.isAxiosError(error)) {
-      return res.status(error.response?.status || 500).json({
-        message: error.response?.data?.message || 'خطا در برقراری ارتباط با سرور',
+    // مدیریت خطا با روش امن تر
+    if (error && typeof error === 'object' && 'response' in error) {
+      return res.status((error.response as any)?.status || 500).json({
+        message: (error.response as any)?.data?.message || 'خطا در برقراری ارتباط با سرور',
       });
     } else {
-      // برای خطاهای غیر Axios
+      // برای خطاهای دیگر
       return res.status(500).json({ message: 'خطا غیر منتظره‌ای رخ داد.' });
     }
   }

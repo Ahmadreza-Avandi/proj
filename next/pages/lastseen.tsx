@@ -15,6 +15,7 @@ import {
 } from '@mui/material';
 import { format } from 'date-fns-jalali';
 import { Clock, AlertCircle, MapPin } from 'lucide-react';
+import { Theme } from '@mui/material/styles';
 
 interface User {
   id: number;
@@ -25,7 +26,7 @@ interface User {
   imageUrl: string;
 }
 
-const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
+const StyledTableContainer = styled(TableContainer)(({ theme }: { theme: Theme }) => ({
   maxHeight: '70vh',
   borderRadius: theme.shape.borderRadius,
   boxShadow: theme.shadows[3],
@@ -42,7 +43,7 @@ const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
   },
 }));
 
-const StyledTableCell = styled(TableCell)(({ theme }) => ({
+const StyledTableCell = styled(TableCell)(({ theme }: { theme: Theme }) => ({
   fontWeight: 'bold',
   backgroundColor: theme.palette.primary.main,
   color: theme.palette.primary.contrastText,
@@ -50,7 +51,7 @@ const StyledTableCell = styled(TableCell)(({ theme }) => ({
   padding: theme.spacing(2),
 }));
 
-const StyledTableRow = styled(TableRow)(({ theme }) => ({
+const StyledTableRow = styled(TableRow)(({ theme }: { theme: Theme }) => ({
   '&:nth-of-type(odd)': {
     backgroundColor: theme.palette.action.hover,
   },
@@ -60,7 +61,7 @@ const StyledTableRow = styled(TableRow)(({ theme }) => ({
   },
 }));
 
-const StyledAvatar = styled(Avatar)(({ theme }) => ({
+const StyledAvatar = styled(Avatar)(({ theme }: { theme: Theme }) => ({
   width: 50,
   height: 50,
   border: `2px solid ${theme.palette.primary.main}`,
@@ -72,7 +73,7 @@ const StyledAvatar = styled(Avatar)(({ theme }) => ({
   },
 }));
 
-const LoadingOverlay = styled(Box)(({ theme }) => ({
+const LoadingOverlay = styled(Box)(({ theme }: { theme: Theme }) => ({
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
@@ -81,7 +82,7 @@ const LoadingOverlay = styled(Box)(({ theme }) => ({
   gap: theme.spacing(2),
 }));
 
-const InfoContainer = styled(Box)(({ theme }) => ({
+const InfoContainer = styled(Box)(({ theme }: { theme: Theme }) => ({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
@@ -89,7 +90,7 @@ const InfoContainer = styled(Box)(({ theme }) => ({
   color: theme.palette.text.secondary,
 }));
 
-const LocationText = styled(Typography)(({ theme }) => ({
+const LocationText = styled(Typography)(({ theme }: { theme: Theme }) => ({
   maxWidth: '200px',
   whiteSpace: 'nowrap',
   overflow: 'hidden',

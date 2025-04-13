@@ -1,10 +1,20 @@
 import '@/styles/globals.css';
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material';
 import Layout from '../components/Layout';
+import UserLayout from '../components/Userlayout';
 import { useEffect, useState } from 'react';
 import type { AppProps } from 'next/app';
 import { useRouter } from 'next/router';
 import axios from 'axios';
+
+// Interface for API response
+interface AuthResponse {
+  valid: boolean;
+  user: {
+    role: string;
+    [key: string]: any;
+  };
+}
 
 function MyApp({ Component, pageProps }: AppProps) {
   const [darkMode, setDarkMode] = useState<boolean>(false);
@@ -29,7 +39,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       const token = localStorage.getItem('access_token');
       if (token) {
         try {
-          const response = await axios.get('/api/validate-token', {
+          const response = await axios.get<AuthResponse>('/api/validate-token', {
             headers: { Authorization: `Bearer ${token}` },
           });
 
@@ -125,9 +135,15 @@ function MyApp({ Component, pageProps }: AppProps) {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       {isAuthenticated ? (
-        <Layout darkMode={darkMode} setDarkMode={setDarkMode} userRole={userRole}>
-          <Component {...pageProps} />
-        </Layout>
+        userRole === 'ADMIN' ? (
+          <Layout darkMode={darkMode} setDarkMode={setDarkMode} userRole={userRole}>
+            <Component {...pageProps} />
+          </Layout>
+        ) : (
+          <UserLayout darkMode={darkMode} setDarkMode={setDarkMode} userRole={userRole}>
+            <Component {...pageProps} />
+          </UserLayout>
+        )
       ) : (
         <Component {...pageProps} />
       )}

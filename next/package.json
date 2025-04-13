@@ -6,8 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
-    "server": "ts-node server.ts"
+    "lint": "next lint"
   },
   "dependencies": {
     "@date-io/date-fns": "^3.2.1",
@@ -54,12 +53,12 @@
     "yup": "^1.6.1"
   },
   "devDependencies": {
+    "@types/axios": "^0.9.36",
     "@types/bcrypt": "^5.0.1",
     "@types/multer": "^1.4.11",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
-    "typescript": "^5",
-    "ts-node": "^10.9.2"
+    "typescript": "^5"
   }
 }
