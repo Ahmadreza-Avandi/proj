@@ -1,88 +1,51 @@
 # سیستم حضور و غیاب با تشخیص چهره
 
-## راهنمای داکر
+## نصب و راه‌اندازی با Docker
 
-### پیش‌نیازها
-- داکر نسخه 24.0.0 یا بالاتر
-- docker-compose نسخه 2.0.0 یا بالاتر
+برای راه‌اندازی پروژه با استفاده از Docker:
 
-### روش اجرا در سرور تولید
-1. ابتدا کد پروژه را کلون کنید:
-```bash
-git clone <your-repo-url>
-cd <your-repo-directory>
-```
+1. نصب Docker و Docker Compose:
+   - Docker را از [سایت رسمی Docker](https://www.docker.com/get-started) دانلود و نصب کنید.
+   - Docker Compose معمولاً همراه با Docker نصب می‌شود.
 
-2. تنظیم مسیر گواهینامه‌های SSL (برای HTTPS):
-- گواهینامه‌های SSL خود را در مسیر مشخص شده قرار دهید یا مسیر را در docker-compose.yml تغییر دهید.
-- برای تولید گواهینامه با Let's Encrypt، می‌توانید از certbot استفاده کنید:
-```bash
-sudo apt-get update
-sudo apt-get install certbot
-sudo certbot certonly --standalone -d yourdomain.com -d www.yourdomain.com
-```
+2. راه‌اندازی سرویس‌ها:
+   ```bash
+   docker-compose up
+   ```
 
-3. تنظیم فایل محیطی:
-- فایل .env در پوشه nest را متناسب با نیازهای خود ویرایش کنید.
-- اگر از دامنه خاصی استفاده می‌کنید، آدرس آن را در فایل server.ts بخش `console.log('✅ HTTPS Server running on https://yourdomain.com')` به دامنه خود تغییر دهید.
+3. برای اجرا در پس‌زمینه:
+   ```bash
+   docker-compose up -d
+   ```
 
-4. آماده‌سازی اسکریپت‌های اولیه دیتابیس:
-- فایل init.sql را ویرایش کنید و اسکریپت‌های مورد نیاز پروژه را به آن اضافه کنید.
+4. متوقف کردن سرویس‌ها:
+   ```bash
+   docker-compose down
+   ```
 
-5. ساخت و اجرای کانتینرها:
-```bash
-docker-compose build --no-cache  # بازسازی کامل تصاویر
-docker-compose up -d             # اجرا در پس‌زمینه
-```
+## سرویس‌های موجود:
 
-6. بررسی وضعیت سرویس‌ها:
-```bash
-docker-compose ps                # نمایش وضعیت کانتینرها
-docker-compose logs -f           # مشاهده لاگ‌ها به صورت زنده
-```
+- **Frontend (Next.js)**: قابل دسترسی در پورت 3000 - `http://localhost:3000`
+- **Backend (Nest.js)**: قابل دسترسی در پورت 3001 - `http://localhost:3001`
+- **MySQL Database**: قابل دسترسی در پورت 3306
 
-7. برای توقف سرویس‌ها:
-```bash
-docker-compose down              # توقف و حذف کانتینرها
-docker-compose down -v           # توقف و حذف کانتینرها و حجم‌ها
-```
+## راه‌اندازی بخش تشخیص چهره (بدون Docker)
 
-### سرویس‌ها
-- **Next.js (فرانت‌اند)**: قابل دسترس در پورت 3000 یا 443 (HTTPS)
-- **Nest.js (بک‌اند)**: قابل دسترس در پورت 3001
-- **MySQL**: قابل دسترس در پورت 3306
-- **PHPMyAdmin**: قابل دسترس در پورت 8081 (مدیریت دیتابیس)
-- **Redis**: قابل دسترس در پورت 6379
-- **Redis Commander**: قابل دسترس در پورت 8082 (مدیریت Redis)
+سیستم تشخیص چهره با دوربین به صورت محلی اجرا می‌شود (بدون Docker):
 
-### نکات مهم
-- بخش تشخیص چهره با دوربین (faceDetectionWithCamera) در محیط داکر اجرا نمی‌شود و باید به صورت جداگانه اجرا شود.
-- برای استفاده از HTTPS، گواهینامه‌های SSL باید در مسیر مشخص شده قرار گیرند.
-- اطلاعات دیتابیس برای اتصال:
-  - نام کاربری: `user`
-  - رمز عبور: `userpassword`
-  - نام دیتابیس: `mydatabase`
+1. نصب وابستگی‌های پایتون:
+   ```bash
+   pip install opencv-python numpy face-recognition dlib
+   ```
 
-### عیب‌یابی رایج
+2. اجرای برنامه تشخیص چهره:
+   ```bash
+   cd faceDetectionWithCamera
+   python faceDetectionWithCamera.py
+   ```
 
-1. **مشکل در اتصال به دیتابیس**:
-   - اطمینان حاصل کنید که سرویس MySQL به درستی اجرا شده است.
-   - مقادیر DATABASE_URL در فایل .env را بررسی کنید.
-   - لاگ‌های MySQL را با دستور `docker-compose logs mysql` بررسی کنید.
+## نکات مهم
 
-2. **مشکل در HTTPS**:
-   - مسیر صحیح گواهینامه‌ها را بررسی کنید.
-   - دسترسی‌های فایل گواهینامه را بررسی کنید.
-   - در صورت عدم وجود گواهینامه، برنامه به صورت HTTP در پورت 3000 اجرا خواهد شد.
-
-3. **عدم دسترسی به سرویس‌ها**:
-   - پورت‌ها را در فایروال سرور باز کنید.
-   - تنظیمات DNS را بررسی کنید.
-   - با دستور `docker-compose ps` وضعیت کانتینرها را بررسی کنید.
-
-4. **بیرون آوردن زباله (cleanup) و شروع مجدد**:
-```bash
-docker-compose down -v          # حذف کانتینرها و حجم‌ها
-docker system prune -a --volumes # پاکسازی کامل
-docker-compose up -d            # شروع مجدد
-```
+- پایگاه داده MySQL با کاربر `user` و رمز عبور `userpassword` و نام دیتابیس `mydatabase` راه‌اندازی می‌شود.
+- در صورت نیاز به تغییر تنظیمات پایگاه داده، فایل `docker-compose.yml` و فایل `.env` در پوشه `nest` را ویرایش کنید.
+- برنامه تشخیص چهره نیاز به دسترسی به دوربین سیستم شما دارد. 
