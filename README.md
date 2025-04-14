@@ -48,4 +48,49 @@
 
 - پایگاه داده MySQL با کاربر `user` و رمز عبور `userpassword` و نام دیتابیس `mydatabase` راه‌اندازی می‌شود.
 - در صورت نیاز به تغییر تنظیمات پایگاه داده، فایل `docker-compose.yml` و فایل `.env` در پوشه `nest` را ویرایش کنید.
-- برنامه تشخیص چهره نیاز به دسترسی به دوربین سیستم شما دارد. 
+- برنامه تشخیص چهره نیاز به دسترسی به دوربین سیستم شما دارد.
+
+## Docker Setup and Configuration
+
+This project includes multiple services configured with Docker:
+
+1. Frontend (Next.js)
+2. Backend (Nest.js)
+3. MySQL Database
+4. Redis Cache
+5. Face Detection (Python service)
+
+### Running with Docker
+
+1. Make sure Docker and Docker Compose are installed on your system
+2. Clone this repository
+3. Build and start all services:
+
+```bash
+docker-compose up -d
+```
+
+4. Check if all services are running:
+
+```bash
+docker-compose ps
+```
+
+### Troubleshooting
+
+If you encounter issues:
+
+1. Check container logs:
+
+```bash
+docker-compose logs -f [service_name]
+```
+
+2. Make sure all required ports are available
+3. If database connection fails, you might need to wait for the database to initialize before starting the backend
+
+### Accessing Services
+
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:3001
+- Face Detection API: http://localhost:5000 

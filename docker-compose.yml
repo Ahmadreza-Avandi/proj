@@ -16,6 +16,8 @@ services:
     restart: unless-stopped
     depends_on:
       - backend
+    networks:
+      - app-network
 
   # سرویس Nest.js (بک‌اند)
   backend:
@@ -26,11 +28,17 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
+      - DATABASE_URL=mysql://user:userpassword@mysql:3306/mydatabase
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     restart: unless-stopped
     env_file:
       - ./nest/.env
     depends_on:
       - mysql
+      - redis
+    networks:
+      - app-network
 
   # سرویس دیتابیس MySQL
   mysql:
@@ -45,6 +53,40 @@ services:
     volumes:
       - mysql_data:/var/lib/mysql
     restart: unless-stopped
+    networks:
+      - app-network
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+
+  # سرویس Redis
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    networks:
+      - app-network
+    volumes:
+      - redis_data:/data
+
+  # سرویس getFace پایتون
+  face-detection:
+    build:
+      context: ./faceDetectionWithCamera
+      dockerfile: Dockerfile
+    volumes:
+      - ./faceDetectionWithCamera:/app
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    networks:
+      - app-network
+    depends_on:
+      - backend
+
+networks:
+  app-network:
+    driver: bridge
 
 volumes:
-  mysql_data: 
+  mysql_data:
+  redis_data: 
