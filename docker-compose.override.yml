@@ -43,4 +43,10 @@ services:
         max_attempts: 3
     environment:
       - BACKEND_URL=http://backend:3001
-      - FLASK_ENV=production 
+      - FLASK_ENV=production
+    # بیشتر کردن زمان انتظار برای ساخت تصویر
+    build:
+      shm_size: 2gb
+    # نصب curl برای health check
+    healthcheck:
+      test: sh -c "apt-get update && apt-get install -y curl && curl -f http://localhost:5000/health || exit 1" 

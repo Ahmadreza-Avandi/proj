@@ -20,5 +20,15 @@ docker-compose up -d
 echo "وضعیت سرویس‌ها:"
 docker-compose ps
 
-echo "برای مشاهده لاگ‌ها، دستور زیر را اجرا کنید:"
-echo "docker-compose logs -f" 
+echo "برای مشاهده لاگ‌ها، دستورات زیر را اجرا کنید:"
+echo "docker-compose logs -f"
+echo "docker-compose logs -f backend"
+echo "docker-compose logs -f frontend"
+echo "docker-compose logs -f mysql"
+echo "docker-compose logs -f redis"
+echo "docker-compose logs -f face-detection"
+
+# تست اتصال به سرویس تشخیص چهره
+echo "در حال تست اتصال به سرویس تشخیص چهره..."
+sleep 10
+curl http://localhost:5000/health 
