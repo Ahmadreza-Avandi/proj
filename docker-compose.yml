@@ -94,7 +94,7 @@ services:
       dockerfile: Dockerfile
     ports:
       - "3000:3000"
-      - "443:443"
+      - "80:80"
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=http://nestjs:3001

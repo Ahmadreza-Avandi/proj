@@ -34,7 +34,6 @@ COPY --from=builder /usr/src/app/public ./public
 COPY --from=builder /usr/src/app/.next ./.next
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json ./package.json
-COPY --from=builder /usr/src/app/server.ts ./server.ts
 
 # کپی فایل‌های محیطی
 COPY .env.local .env.local
@@ -42,9 +41,8 @@ COPY .env.local .env.local
 # ایجاد دایرکتوری برای گواهی‌نامه‌های SSL
 RUN mkdir -p /certs
 
-# پورت‌هایی که Next.js در محیط تولید از آن استفاده می‌کند
+# پورت‌ها
 EXPOSE 3000
-EXPOSE 443
 
-# دستور اجرای برنامه در محیط تولید با استفاده از سرور سفارشی
-CMD ["node", "server.ts"]
+# دستور اجرای برنامه در محیط تولید با استفاده از سرور داخلی Next.js
+CMD ["npm", "start"]
