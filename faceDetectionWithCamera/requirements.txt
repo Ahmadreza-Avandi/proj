@@ -1,8 +1,13 @@
 numpy==1.24.3
-opencv-python==4.8.0.76
-opencv-contrib-python==4.8.0.76
+opencv-python-headless==4.8.0.76
+opencv-contrib-python-headless==4.8.0.76
+# دیگر نیازی به نصب dlib به این روش نیست
+# dlib==19.24.2
+face_recognition_models==0.3.0
+# نصب dlib از طریق فایل wheel آماده
+--find-links https://github.com/z-mahmud22/Dlib_Windows_Python/raw/main/dlib-19.22.99-cp39-cp39-linux_x86_64.whl
+dlib==19.22.99
 face-recognition==1.3.0
-dlib==19.24.2
 flask==2.3.3
 requests==2.31.0
 pillow==10.0.1 
