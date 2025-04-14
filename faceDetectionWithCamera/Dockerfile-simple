@@ -1,0 +1,18 @@
+FROM python:3.7-slim
+
+WORKDIR /app
+
+# نصب فقط وابستگی‌های اصلی
+RUN pip install --no-cache-dir flask==1.1.4 werkzeug==1.0.1 redis==4.1.0 requests==2.26.0
+
+# کپی فایل simple_server.py
+COPY simple_server.py /app/
+
+# تست اجرا شدن Flask
+RUN echo "print('Flask installation test')" > test.py && python test.py
+
+# باز کردن پورت
+EXPOSE 5000
+
+# اجرای سرور ساده
+CMD ["python", "simple_server.py"] 

@@ -1,0 +1,16 @@
+services:
+  # سرویس getFace پایتون
+  face-detection:
+    container_name: face-detection-standalone
+    build:
+      context: ./faceDetectionWithCamera
+      dockerfile: Dockerfile-simple
+    ports:
+      - "5000:5000"
+    restart: unless-stopped
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge 
