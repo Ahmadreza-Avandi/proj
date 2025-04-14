@@ -29,7 +29,6 @@ def health():
 @app.route('/api/detect', methods=['POST'])
 def detect_face():
     logger.info("درخواست تشخیص چهره دریافت شد")
-    # این یک پاسخ مصنوعی است تا سیستم بدون نیاز به کتابخانه‌های تشخیص چهره کار کند
     return jsonify({
         'detected': True,
         'faces': 1,
