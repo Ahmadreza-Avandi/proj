@@ -9,6 +9,10 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# نصب نسخه‌های دقیق و سازگار از کتابخانه‌ها برای رفع مشکل ناسازگاری
+RUN pip install --no-cache-dir markupsafe==2.0.1
+RUN pip install --no-cache-dir jinja2==2.11.3
+
 # کپی کد برنامه ساده
 COPY simple_server.py /app/
 

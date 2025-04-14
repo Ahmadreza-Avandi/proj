@@ -21,19 +21,16 @@ docker-compose exec -T mysql mysql -u root -prootpassword -e "CREATE DATABASE my
 docker-compose exec -T mysql mysql -u root -prootpassword -e "GRANT ALL PRIVILEGES ON mydatabase.* TO 'user'@'%';"
 docker-compose exec -T mysql mysql -u root -prootpassword -e "FLUSH PRIVILEGES;"
 
-echo "=== ساخت و راه‌اندازی سرویس face-detection مستقل ==="
-docker-compose -f face-detection-docker-compose.yml build --no-cache
-docker-compose -f face-detection-docker-compose.yml up -d
-
-echo "=== راه‌اندازی سرویس‌های دیگر ==="
-docker-compose up -d redis backend frontend
+echo "=== ساخت و راه‌اندازی سرویس‌ها ==="
+docker-compose build --no-cache
+docker-compose up -d
 
 echo "=== نمایش وضعیت سرویس‌ها ==="
 docker ps
 
 echo "=== نمایش لاگ‌های سرویس face-detection ==="
 sleep 3
-docker logs face-detection-standalone
+docker-compose logs face-detection
 
 echo "=== نمایش لاگ‌های سرویس backend ==="
 sleep 3
