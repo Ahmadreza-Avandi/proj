@@ -74,7 +74,7 @@ services:
       context: ./faceDetectionWithCamera
       dockerfile: Dockerfile
     volumes:
-      - ./faceDetectionWithCamera:/app
+      - facedetection_data:/app/data
     ports:
       - "5000:5000"
     restart: unless-stopped
@@ -100,4 +100,5 @@ networks:
 
 volumes:
   mysql_data:
-  redis_data: 
+  redis_data:
+  facedetection_data: 
