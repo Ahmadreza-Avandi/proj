@@ -20,7 +20,8 @@ os.makedirs("labels", exist_ok=True)
 # پیکربندی لاگ
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-REDIS_HOST = os.environ.get("REDIS_HOST", "localhost")
+# آدرس میزبان Redis برای دسترسی از داخل Docker
+REDIS_HOST = os.environ.get("REDIS_HOST", "redis")
 try:
     redis_client = redis.StrictRedis(host=REDIS_HOST, port=6379, db=0, decode_responses=True)
     redis_client.ping()
@@ -289,4 +290,5 @@ def get_labels():
 
 # --------------------- اجرای سرور ---------------------
 if __name__ == '__main__':
-    app.run(debug=True)
+    # اجرای فلسک در حالت تولید و با دسترسی از خارج
+    app.run(host='0.0.0.0', port=5000, debug=True)
