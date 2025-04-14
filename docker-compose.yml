@@ -2,7 +2,7 @@ version: '3'
 
 services:
   # سرویس Next.js (فرانت‌اند)
-  frontend:
+  nextjs:
     build:
       context: ./next
       dockerfile: Dockerfile
@@ -11,16 +11,19 @@ services:
       - "443:443"
     environment:
       - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://nestjs:3001
+      - NEXT_PUBLIC_PYTHON_API_URL=http://pythonserver:5000
     volumes:
       - ./certs:/certs
     restart: unless-stopped
     depends_on:
-      - backend
+      - nestjs
+      - mysql
     networks:
       - app-network
 
   # سرویس Nest.js (بک‌اند)
-  backend:
+  nestjs:
     build:
       context: ./nest
       dockerfile: Dockerfile
@@ -28,17 +31,21 @@ services:
       - "3001:3001"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=mysql://user:userpassword@mysql:3306/mydatabase
+      - DATABASE_URL=mysql://user:userpassword@mysql:3306/mydatabase?connect_timeout=30
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     restart: unless-stopped
     env_file:
       - ./nest/.env
     depends_on:
-      - mysql
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     networks:
       - app-network
+    command: >
+      sh -c "npx prisma migrate deploy && node dist/main.js"
 
   # سرویس دیتابیس MySQL
   mysql:
@@ -52,10 +59,17 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./old-docker-project/test.sql:/docker-entrypoint-initdb.d/init.sql:ro
     restart: unless-stopped
     networks:
       - app-network
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "user", "-puserpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
   # سرویس Redis
   redis:
@@ -68,31 +82,58 @@ services:
     volumes:
       - redis_data:/data
 
-  # سرویس getFace پایتون
-  face-detection:
+  # سرویس phpMyAdmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8081:80"
+    environment:
+      - PMA_HOST=mysql
+      - PMA_USER=root
+      - PMA_PASSWORD=rootpassword
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+
+  # سرویس Redis Commander
+  redis-commander:
+    image: rediscommander/redis-commander
+    ports:
+      - "8082:8081"
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    networks:
+      - app-network
+
+  # سرویس پایتون برای تشخیص چهره
+  pythonserver:
     build:
       context: ./faceDetectionWithCamera
       dockerfile: Dockerfile
     volumes:
       - facedetection_data:/app/data
+      - ./faceDetectionWithCamera/trainer:/app/trainer
+      - ./faceDetectionWithCamera/labels:/app/labels
     ports:
       - "5000:5000"
     restart: unless-stopped
     networks:
       - app-network
     depends_on:
-      - backend
+      - redis
+    environment:
+      - FLASK_ENV=production
+      - REDIS_HOST=redis
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-    deploy:
-      resources:
-        limits:
-          cpus: '1'
-          memory: 2G
 
 networks:
   app-network:

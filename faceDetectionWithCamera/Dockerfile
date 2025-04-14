@@ -1,28 +1,40 @@
-FROM python:3.7-slim
+FROM python:3.10-slim
 
+# تنظیم دایرکتوری کاری
 WORKDIR /app
 
-# نصب وابستگی‌های حداقلی
-RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+# نصب ابزارهای موردنیاز برای اجرای OpenCV و دیگر وابستگی‌ها
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    cmake \
+    pkg-config \
     libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgl1-mesa-glx \
+    libjpeg-dev \
+    libpng-dev \
+    libtiff-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev \
+    libv4l-dev \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    openssl && rm -rf /var/lib/apt/lists/*
 
-# نصب نسخه‌های دقیق و سازگار از کتابخانه‌ها برای رفع مشکل ناسازگاری
-RUN pip install --no-cache-dir markupsafe==2.0.1
-RUN pip install --no-cache-dir jinja2==2.11.3
+# کپی و نصب وابستگی‌ها
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# کپی کد برنامه ساده
-COPY simple_server.py /app/
+# ایجاد پوشه‌های مورد نیاز
+RUN mkdir -p trainer labels assets
 
-# نصب وابستگی‌های ساده با نسخه‌های کاملاً مشخص و سازگار
-RUN pip install --no-cache-dir flask==1.1.4 werkzeug==1.0.1
-RUN pip install --no-cache-dir redis==4.1.0
-RUN pip install --no-cache-dir requests==2.26.0 pillow==8.3.2
+# کپی کردن تمام فایل‌های پروژه
+COPY . .
 
-# باز کردن پورت
+# باز کردن پورت پیش‌فرض Flask
 EXPOSE 5000
 
-# اجرای مستقیم سرور ساده
-CMD ["python", "simple_server.py"] 
+# اجرای اپلیکیشن
+CMD ["python", "get-face-data.py"] 

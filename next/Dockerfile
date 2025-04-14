@@ -25,18 +25,26 @@ WORKDIR /usr/src/app
 # متغیرهای محیطی برای محیط تولید
 ENV NODE_ENV=production
 
+# نصب ابزارهای اضافی
+RUN apk add --no-cache curl
+
 # کپی فایل‌های مورد نیاز از مرحله قبلی
 COPY --from=builder /usr/src/app/next.config.js ./
 COPY --from=builder /usr/src/app/public ./public
 COPY --from=builder /usr/src/app/.next ./.next
 COPY --from=builder /usr/src/app/node_modules ./node_modules
 COPY --from=builder /usr/src/app/package.json ./package.json
+COPY --from=builder /usr/src/app/server.ts ./server.ts
+
+# کپی فایل‌های محیطی
+COPY .env.local .env.local
 
 # ایجاد دایرکتوری برای گواهی‌نامه‌های SSL
 RUN mkdir -p /certs
 
-# پورتی که Next.js در محیط تولید از آن استفاده می‌کند
+# پورت‌هایی که Next.js در محیط تولید از آن استفاده می‌کند
 EXPOSE 3000
+EXPOSE 443
 
-# دستور اجرای برنامه در محیط تولید
-CMD ["npm", "start"]
+# دستور اجرای برنامه در محیط تولید با استفاده از سرور سفارشی
+CMD ["node", "server.ts"]
