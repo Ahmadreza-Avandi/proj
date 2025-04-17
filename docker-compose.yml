@@ -96,8 +96,8 @@ services:
       - "3000:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=https://a.networklearnzero.shop/api
-      - NEXT_PUBLIC_PYTHON_API_URL=https://a.networklearnzero.shop/faceapi
+      - NEXT_PUBLIC_API_URL=http://a.networklearnzero.shop/api
+      - NEXT_PUBLIC_PYTHON_API_URL=http://a.networklearnzero.shop/faceapi
     volumes:
       - ./certs:/certs
     restart: unless-stopped
