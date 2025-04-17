@@ -1,82 +1,333 @@
 # راهنمای جامع دیپلوی پروژه سیستم حضور و غیاب روی VPS با SSL
 
-## مرحله ۱: پاکسازی نصب قبلی از روی VPS
+## مرحله ۱: پیش‌نیازها
 ```bash
-# اتصال به VPS
-ssh username@your_server_ip
+# اطمینان از نصب Docker و Docker Compose روی سرور
+ssh root@your_server_ip
 
-# حذف پروژه قبلی (در صورت وجود)
-cd /path/to/projects
-rm -rf proj
+# نصب Docker (اگر نصب نیست)
+curl -fsSL https://get.docker.com -o get-docker.sh
+sh get-docker.sh
 
+# نصب Docker Compose (اگر نصب نیست)
+curl -L "https://github.com/docker/compose/releases/download/v2.18.1/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+
+# بررسی نسخه‌های نصب شده
+docker --version
+docker-compose --version
+```
+
+## مرحله ۲: پاکسازی نصب قبلی (اگر وجود دارد)
+```bash
 # توقف و حذف کانتینرهای قبلی
-cd proj
+cd /path/to/project
 docker-compose down
 docker system prune -a --volumes --force
 ```
 
-## مرحله ۲: دریافت کد جدید از مخزن گیت‌هاب
+## مرحله ۳: دریافت کد پروژه
 ```bash
-# کلون کردن مخزن جدید
-git clone https://github.com/Ahmadreza-Avandi/proj.git
-cd proj
+# کلون کردن مخزن 
+git clone https://github.com/yourrepo/yourproject.git
+cd yourproject
+
+# یا انتقال فایل‌ها با استفاده از SCP/SFTP
+scp -r /local/path/to/project root@your_server_ip:/path/on/server
 ```
 
-## مرحله ۳: تنظیم گواهی‌نامه SSL
+## مرحله ۴: تنظیم گواهی‌نامه SSL
 ```bash
-# ایجاد پوشه برای گواهی‌نامه‌های SSL
+# روش اول: استفاده از Let's Encrypt (رایگان)
+sudo apt update
+sudo apt install certbot
+
+# اطمینان از اینکه پورت‌های 80 و 443 آزاد هستند (کانتینرها را متوقف کنید)
+docker-compose down
+
+# دریافت گواهی SSL
+sudo certbot certonly --standalone -d yourdomain.com -d www.yourdomain.com
+
+# ساخت پوشه برای گواهی‌نامه‌ها
 mkdir -p certs
 
-# انتقال گواهی‌نامه‌های SSL به پوشه certs
-cp /path/to/ssl/fullchain.pem certs/
-cp /path/to/ssl/privkey.pem certs/
+# کپی گواهی‌نامه‌ها به پوشه پروژه
+sudo cp /etc/letsencrypt/live/yourdomain.com/fullchain.pem certs/
+sudo cp /etc/letsencrypt/live/yourdomain.com/privkey.pem certs/
+sudo chmod 644 certs/*.pem
+
+# روش دوم: استفاده از گواهی‌نامه‌های موجود
+mkdir -p certs
+cp /path/to/your/ssl/fullchain.pem certs/
+cp /path/to/your/ssl/privkey.pem certs/
+chmod 644 certs/*.pem
 ```
 
-## مرحله ۴: تنظیم فایل‌های محیطی
+## مرحله ۵: اصلاح فایل docker-compose.yml برای پشتیبانی از SSL
+```bash
+# ایجاد یک کپی پشتیبان از فایل docker-compose.yml
+cp docker-compose.yml docker-compose.yml.bak
+
+# ویرایش docker-compose.yml برای پشتیبانی از SSL
+nano docker-compose.yml
+```
+
+اصلاحات زیر را در فایل docker-compose.yml اعمال کنید:
+
+```yaml
+# سرویس nextjs را به صورت زیر ویرایش کنید
+nextjs:
+  build:
+    context: ./next
+    dockerfile: Dockerfile
+  ports:
+    - "443:3000"  # اضافه کردن پورت HTTPS
+    - "80:80"     # برای ریدایرکت HTTP به HTTPS
+  environment:
+    - NODE_ENV=production
+    - NEXT_PUBLIC_API_URL=https://yourdomain.com/api
+    - NEXT_PUBLIC_PYTHON_API_URL=https://yourdomain.com/faceapi
+  volumes:
+    - ./certs:/certs  # ماونت پوشه گواهی‌نامه‌ها
+  restart: unless-stopped
+  depends_on:
+    - nestjs
+  networks:
+    - app-network
+  command: >
+    sh -c "node server.js"  # یا هر دستور مناسب دیگری که سرور را با SSL راه‌اندازی می‌کند
+
+# سرویس nestjs را به صورت زیر ویرایش کنید
+nestjs:
+  build:
+    context: ./nest
+    dockerfile: Dockerfile
+  # تغییر پورت به داخلی (فقط در شبکه داخلی داکر)
+  ports:
+    - "3001:3001"
+  environment:
+    - NODE_ENV=production
+    - DATABASE_URL=mysql://root:rootpassword@mysql:3306/mydatabase?connect_timeout=30
+    - REDIS_HOST=redis
+    - REDIS_PORT=6379
+    - SSL_KEY_PATH=/certs/privkey.pem
+    - SSL_CERT_PATH=/certs/fullchain.pem
+  volumes:
+    - ./certs:/certs  # ماونت پوشه گواهی‌نامه‌ها
+```
+
+## مرحله ۶: نصب و پیکربندی Nginx برای Reverse Proxy (توصیه شده)
+```bash
+# اضافه کردن سرویس Nginx به docker-compose.yml
+cat >> docker-compose.yml << 'EOL'
+
+  # سرویس Nginx برای Reverse Proxy و SSL
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./certs:/etc/nginx/certs
+    depends_on:
+      - nextjs
+      - nestjs
+      - pythonserver
+    networks:
+      - app-network
+    restart: unless-stopped
+EOL
+
+# ایجاد پوشه برای پیکربندی Nginx
+mkdir -p nginx/conf.d
+
+# ایجاد فایل پیکربندی اصلی Nginx
+cat > nginx/nginx.conf << 'EOL'
+user  nginx;
+worker_processes  auto;
+
+error_log  /var/log/nginx/error.log notice;
+pid        /var/run/nginx.pid;
+
+events {
+    worker_connections  1024;
+}
+
+http {
+    include       /etc/nginx/mime.types;
+    default_type  application/octet-stream;
+
+    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+                      '$status $body_bytes_sent "$http_referer" '
+                      '"$http_user_agent" "$http_x_forwarded_for"';
+
+    access_log  /var/log/nginx/access.log  main;
+
+    sendfile        on;
+    keepalive_timeout  65;
+    server_tokens off;
+
+    # Gzip compression
+    gzip on;
+    gzip_vary on;
+    gzip_min_length 10240;
+    gzip_proxied expired no-cache no-store private auth;
+    gzip_types text/plain text/css text/xml text/javascript application/x-javascript application/xml application/javascript;
+    gzip_disable "MSIE [1-6]\.";
+
+    # SSL settings
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_prefer_server_ciphers on;
+    ssl_ciphers "EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH";
+    ssl_session_cache shared:SSL:10m;
+    ssl_session_timeout 10m;
+
+    include /etc/nginx/conf.d/*.conf;
+}
+EOL
+
+# ایجاد فایل پیکربندی وب‌سایت
+cat > nginx/conf.d/default.conf << 'EOL'
+server {
+    listen 80;
+    server_name yourdomain.com www.yourdomain.com;
+    
+    # ریدایرکت تمام درخواست‌های HTTP به HTTPS
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name yourdomain.com www.yourdomain.com;
+    
+    # تنظیمات SSL
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+    
+    # تنظیمات امنیتی
+    add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options SAMEORIGIN;
+    add_header X-XSS-Protection "1; mode=block";
+    
+    # فرانت‌اند (Next.js)
+    location / {
+        proxy_pass http://nextjs:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # بک‌اند (Nest.js)
+    location /api {
+        rewrite ^/api/(.*) /$1 break;
+        proxy_pass http://nestjs:3001;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # سرویس تشخیص چهره (Python)
+    location /faceapi {
+        rewrite ^/faceapi/(.*) /$1 break;
+        proxy_pass http://pythonserver:5000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection 'upgrade';
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # phpMyAdmin
+    location /phpmyadmin {
+        proxy_pass http://phpmyadmin:80;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # Redis Commander
+    location /redis {
+        proxy_pass http://redis-commander:8081;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+    
+    # تنظیم محدودیت اندازه آپلود
+    client_max_body_size 20M;
+}
+EOL
+
+# جایگزینی yourdomain.com با دامنه واقعی در فایل‌های پیکربندی
+sed -i 's/yourdomain.com/your-actual-domain.com/g' nginx/conf.d/default.conf
+```
+
+## مرحله ۷: تنظیم فایل‌های محیطی
 ```bash
 # ایجاد فایل .env برای Nest.js
+mkdir -p nest
 cat > nest/.env << EOL
-DATABASE_URL="mysql://user:userpassword@mysql:3306/mydatabase"
+DATABASE_URL="mysql://root:rootpassword@mysql:3306/mydatabase"
+NODE_ENV=production
 EOL
 
 # ایجاد فایل .env.local برای Next.js
+mkdir -p next
 cat > next/.env.local << EOL
-NEXT_PUBLIC_API_URL=https://your_domain.com:3001
-DATABASE_URL="mysql://user:userpassword@mysql:3306/mydatabase"
+NEXT_PUBLIC_API_URL=https://your-actual-domain.com/api
+NEXT_PUBLIC_PYTHON_API_URL=https://your-actual-domain.com/faceapi
+NODE_ENV=production
 EOL
+
+# جایگزینی دامنه واقعی
+sed -i 's/your-actual-domain.com/your-actual-domain.com/g' next/.env.local
 ```
 
-## مرحله ۵: به‌روزرسانی آدرس‌های دیتابیس
+## مرحله ۸: ایجاد و راه‌اندازی کانتینرها
 ```bash
-# جایگزینی تمام آدرس‌های اتصال به دیتابیس در فایل‌های API
-find ./next/pages/api -type f -name "*.ts" -exec sed -i 's|mysql:\/\/root:@localhost:3306\/proj|mysql:\/\/user:userpassword@mysql:3306\/mydatabase|g' {} \;
-```
-
-## مرحله ۶: ایجاد و راه‌اندازی کانتینرها
-```bash
-# ساخت کانتینرها
+# ساخت و راه‌اندازی کانتینرها
 docker-compose build --no-cache
-
-# راه‌اندازی کانتینرها در پس‌زمینه
 docker-compose up -d
+
+# بررسی وضعیت کانتینرها
+docker-compose ps
 ```
 
-## مرحله ۷: اجرای مایگریشن‌های Prisma
+## مرحله ۹: اجرای مایگریشن‌های Prisma و ایجاد داده‌های اولیه
 ```bash
-# دسترسی به کانتینر backend
-docker exec -it proj_backend_1 sh
+# دسترسی به کانتینر nestjs
+docker-compose exec nestjs sh
 
-# اجرای مایگریشن‌ها
+# اجرای مایگریشن‌ها (در داخل کانتینر)
 npx prisma migrate deploy
 
 # خروج از کانتینر
 exit
-```
 
-## مرحله ۸: تنظیم داده‌های اولیه
-```bash
-# دسترسی به کانتینر MySQL
-docker exec -it proj_mysql_1 mysql -u user -puserpassword mydatabase -e "
+# ایجاد داده‌های اولیه
+docker-compose exec mysql mysql -u root -prootpassword mydatabase -e "
 INSERT INTO Role (id, name, permissions) 
 VALUES 
 (1, 'Admin', '{\"viewPlaces\":true,\"editPlaces\":true,\"deletePlaces\":true,\"viewPersons\":true,\"editPersons\":true,\"deletePersons\":true,\"viewRoles\":true,\"editRoles\":true,\"deleteRoles\":true}');
@@ -87,53 +338,59 @@ VALUES
 "
 ```
 
-## مرحله ۹: تنظیم فایروال و پورت‌های مورد نیاز
+## مرحله ۱۰: تنظیم فایروال و پورت‌های مورد نیاز
 ```bash
-# باز کردن پورت‌های مورد نیاز در فایروال (با استفاده از UFW)
+# باز کردن پورت‌های مورد نیاز در فایروال
 sudo ufw allow 22/tcp      # SSH
 sudo ufw allow 80/tcp      # HTTP
 sudo ufw allow 443/tcp     # HTTPS
-sudo ufw allow 3000/tcp    # Next.js
-sudo ufw allow 3001/tcp    # Nest.js
+
+# بررسی وضعیت فایروال
+sudo ufw status
 ```
 
-## مرحله ۱۰: تنظیم دامنه و SSL
+## مرحله ۱۱: تست و اطمینان از صحت نصب
 ```bash
-# تنظیم رکورد DNS برای دامنه به IP سرور
-# example.com و www.example.com باید به IP سرور VPS شما اشاره کنند
-
-# نصب Certbot برای SSL خودکار (اختیاری - اگر از Let's Encrypt استفاده می‌کنید)
-sudo apt update
-sudo apt install certbot
-
-# دریافت گواهینامه SSL
-sudo certbot certonly --standalone -d your_domain.com -d www.your_domain.com
-
-# کپی گواهینامه های جدید به پوشه پروژه
-sudo cp /etc/letsencrypt/live/your_domain.com/fullchain.pem certs/
-sudo cp /etc/letsencrypt/live/your_domain.com/privkey.pem certs/
-sudo chmod 644 certs/fullchain.pem certs/privkey.pem
-
-# راه‌اندازی مجدد کانتینرها
-docker-compose restart frontend
-```
-
-## مرحله ۱۱: بررسی وضعیت سرویس‌ها
-```bash
-# مشاهده لاگ‌ها برای اطمینان از راه‌اندازی موفق
+# بررسی لاگ‌ها برای اطمینان از راه‌اندازی موفق
 docker-compose logs -f
 
-# بررسی وضعیت کانتینرها
-docker-compose ps
+# تست اتصال به وب‌سایت
+curl -k https://your-actual-domain.com
 ```
 
-## دسترسی به سرویس‌ها
-- **Frontend (Next.js)**: https://your_domain.com:3000 یا https://your_server_ip:3000
-- **API (Nest.js)**: https://your_domain.com:3001 یا https://your_server_ip:3001
+## نکات تکمیلی
 
-## عیب‌یابی متداول
+### تنظیم خودکار تمدید گواهی‌نامه SSL
+```bash
+# ایجاد یک اسکریپت برای تمدید خودکار
+cat > renew-ssl.sh << 'EOL'
+#!/bin/bash
 
-### مشکل در اتصال به دیتابیس
+# توقف موقت Nginx
+docker-compose stop nginx
+
+# تمدید گواهی
+certbot renew --quiet
+
+# کپی گواهی‌نامه‌های جدید
+cp /etc/letsencrypt/live/your-actual-domain.com/fullchain.pem certs/
+cp /etc/letsencrypt/live/your-actual-domain.com/privkey.pem certs/
+chmod 644 certs/*.pem
+
+# راه‌اندازی مجدد Nginx
+docker-compose start nginx
+EOL
+
+# قابل اجرا کردن اسکریپت
+chmod +x renew-ssl.sh
+
+# اضافه کردن اسکریپت به کرونتب
+echo "0 3 1 * * /path/to/your/project/renew-ssl.sh" | crontab -
+```
+
+### عیب‌یابی متداول
+
+#### مشکل در اتصال به دیتابیس
 ```bash
 # بررسی وضعیت سرویس MySQL
 docker-compose ps mysql
@@ -143,119 +400,75 @@ docker-compose logs mysql
 docker-compose restart mysql
 ```
 
-### مشکل در گواهینامه‌های SSL
+#### مشکل در گواهینامه‌های SSL
 ```bash
 # بررسی مسیر و دسترسی‌های فایل‌های SSL
 ls -la certs/
 
-# مطمئن شوید که کانتینر frontend به فایل‌های SSL دسترسی دارد
-docker exec -it proj_frontend_1 ls -la /certs/
+# تغییر نام فایل‌های گواهی‌نامه در صورت نیاز
+docker-compose exec nginx sh -c "ls -la /etc/nginx/certs"
+
+# اگر نام فایل‌ها متفاوت است، آنها را تغییر دهید
+mv certs/fullchain1.pem certs/fullchain.pem
+mv certs/privkey1.pem certs/privkey.pem
 ```
 
-### خطای دسترسی به پورت‌ها
+#### مشکل در دسترسی به سرویس‌ها
 ```bash
-# بررسی پورت‌های در حال استفاده
-sudo netstat -tulpn | grep LISTEN
+# بررسی لاگ‌های Nginx
+docker-compose logs nginx
 
-# بستن برنامه‌هایی که پورت‌های مورد نیاز را اشغال کرده‌اند
-sudo fuser -k 3000/tcp
-sudo fuser -k 3001/tcp
+# بررسی پیکربندی Nginx
+docker-compose exec nginx nginx -t
+
+# راه‌اندازی مجدد Nginx
+docker-compose restart nginx
 ```
 
-### بروزرسانی پروژه در آینده
+### مدیریت سیستم
 ```bash
-# توقف کانتینرها
+# راه‌اندازی تمام سرویس‌ها
+docker-compose up -d
+
+# توقف تمام سرویس‌ها
 docker-compose down
 
-# دریافت آخرین تغییرات
-git pull
+# راه‌اندازی مجدد یک سرویس خاص
+docker-compose restart servicename
 
-# بازسازی و راه‌اندازی مجدد
+# مشاهده لاگ‌های سرویس‌ها
+docker-compose logs -f
+docker-compose logs -f servicename
+
+# به‌روزرسانی پروژه
+git pull
 docker-compose build --no-cache
 docker-compose up -d
+
+# پاکسازی فضای دیسک
+docker system prune -a --volumes
 ```
 
-docker
+### دسترسی به سرویس‌ها
+- **وب‌سایت اصلی**: https://your-actual-domain.com
+- **API (Nest.js)**: https://your-actual-domain.com/api
+- **API تشخیص چهره**: https://your-actual-domain.com/faceapi
+- **phpMyAdmin**: https://your-actual-domain.com/phpmyadmin
+- **Redis Commander**: https://your-actual-domain.com/redis
 
-git clone https://github.com/amirzerok/system-docker-rolebase.git
-
-
-
-cd attendance-newlayout-all
-
-cd system-docker-rolebase
-
-
-
-
-
-create .env file
-
-cd project-name
-
-touch .env
-
-nano .env
-
-
-DATABASE_URL="mysql://user:userpassword@mysql:3306/mydatabase"
-
-
- تغییر نام فایل‌ها داخل کانتینر:
-
-
-
-docker exec -it attendance-newlayout-all_nextjs_1 sh -c "mv /certs/fullchain1.pem /certs/fullchain.pem && mv /certs/privkey1.pem /certs/privkey.pem"
-
-
-
-
-docker system prune -a
-
-
-docker start system-mysql-1    
-
-docker-compose build --no-cache
-
-docker-compose up --build 
-
-docker-compose up 
-
-docker-compose up -d
-
-
-docker compose down 
-
-
-
-
-prisma 
-
+### دستورات پرکاربرد
+```bash
+# بررسی وضعیت Docker
 docker ps
+docker stats
 
-docker exec -it attendance-newlayout-all_nestjs_1 sh
+# اجرای دستور در کانتینر
+docker-compose exec nestjs sh
+docker-compose exec mysql mysql -u root -prootpassword mydatabase
 
+# کپی فایل به/از کانتینر
+docker cp myfile.txt container_id:/path/in/container
+docker cp container_id:/path/in/container/myfile.txt ./
 
-npx prisma migrate deploy
-
-
-npx prisma migrate dev --name init
-
-
-
-querry
-
-
-INSERT INTO Role (id, name, permissions) 
-VALUES 
-(1, 'Admin', '{"viewPlaces":true,"editPlaces":true,"deletePlaces":true,"viewPersons":true,"editPersons":true,"deletePersons":true,"viewRoles":true,"editRoles":true,"deleteRoles":true}');
-
-
-
-INSERT INTO User (fullName, nationalCode, phoneNumber, password, roleId) 
-VALUES 
-('amirali hashemipoor', '3381608681', '09369890707', '$2b$12$F.VzTzQhGZ6uXod2oeNUuewqVFL/XiOD/8v47GtTHRleh5CN0ORrO', 1);
-
-
-
-docker exec -it attendance-newlayout-all_nestjs_1 sh
+# بررسی لاگ‌های سیستم
+journalctl -u docker.service
