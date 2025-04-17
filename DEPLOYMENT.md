@@ -40,19 +40,21 @@ newgrp docker
 mkdir -p /opt/attendance-app
 cd /opt/attendance-app
 
-# انتقال فایل‌های پروژه به سرور (در سیستم محلی)
-scp -r /path/to/your/local/project/* user@server_ip:/opt/attendance-app/
+# دریافت پروژه از گیت‌هاب
+git clone https://github.com/Ahmadreza-Avandi/proj.git .
 
-# یا اگر از گیت استفاده می‌کنید
-git clone https://github.com/your-repo/attendance-app.git .
+# در صورتی که از سیستم محلی می‌خواهید فایل‌ها را انتقال دهید
+# scp -r /path/to/your/local/project/* user@server_ip:/opt/attendance-app/
 ```
 
 ## مرحله 3: دریافت گواهی SSL
 
 ```bash
-# اجرای اسکریپت دریافت گواهی (قبلاً توسط ما آماده شده)
+# اجرای اسکریپت دریافت گواهی
 cd /opt/attendance-app
 chmod +x get-ssl-cert.sh
+# جایگزینی ایمیل با ایمیل شما
+sed -i 's/your-email@example.com/your-actual-email@example.com/g' get-ssl-cert.sh
 ./get-ssl-cert.sh
 ```
 
@@ -114,7 +116,7 @@ docker-compose restart
 ### به‌روزرسانی پروژه
 ```bash
 cd /opt/attendance-app
-git pull  # اگر از گیت استفاده می‌کنید
+git pull
 docker-compose down
 docker-compose build --no-cache
 docker-compose up -d
